@@ -49,7 +49,7 @@ jobs:
 
       - name: Build executable
         run: |
-          python -m PyInstaller --noconfirm --onedir --windowed --name "PDFOS" --exclude-module pandas --exclude-module matplotlib --exclude-module scipy --exclude-module notebook --exclude-module IPython --exclude-module PyQt5 --exclude-module PyQt6 --exclude-module PySide6 --exclude-module PySide2 --exclude-module sphinx --exclude-module cryptography --add-data "core${{ runner.os == 'Windows' && ';' || ':' }}core" --add-data "ui${{ runner.os == 'Windows' && ';' || ':' }}ui" --add-data "utils${{ runner.os == 'Windows' && ';' || ':' }}utils" --add-data "assets${{ runner.os == 'Windows' && ';' || ':' }}assets" --collect-all customtkinter --hidden-import psutil --hidden-import PIL._tkinter_finder main.py
+          python -m PyInstaller --noconfirm --onedir --windowed --name "PDFOS" --exclude-module pandas --exclude-module matplotlib --exclude-module scipy --exclude-module notebook --exclude-module IPython --exclude-module PyQt5 --exclude-module PyQt6 --exclude-module PySide6 --exclude-module PySide2 --exclude-module sphinx --add-data "core${{ runner.os == 'Windows' && ';' || ':' }}core" --add-data "ui${{ runner.os == 'Windows' && ';' || ':' }}ui" --add-data "utils${{ runner.os == 'Windows' && ';' || ':' }}utils" --add-data "assets${{ runner.os == 'Windows' && ';' || ':' }}assets" --collect-all customtkinter --hidden-import psutil --hidden-import PIL._tkinter_finder main.py
 
       - name: Package artifact
         shell: bash

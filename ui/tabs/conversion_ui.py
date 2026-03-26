@@ -135,16 +135,16 @@ class ConversionTab(ctk.CTkFrame):
                 if "Images" in fmt:
                     ext = "png" if "PNG" in fmt else "jpg"
                     self._result_paths = conversion.pdf_to_images(inp, tmp, fmt=ext, dpi=dpi, cancel_event=self.app.cancel_event); self._result_path = tmp
-                elif fmt == "Word (DOCX)": o=os.path.join(tmp,"out.docx"); conversion.pdf_to_docx(inp,o); self._result_path=o
-                elif fmt == "Excel (XLSX)": o=os.path.join(tmp,"out.xlsx"); conversion.pdf_to_xlsx(inp,o); self._result_path=o
-                elif fmt == "PowerPoint (PPTX)": o=os.path.join(tmp,"out.pptx"); conversion.pdf_to_pptx(inp,o,dpi=dpi, cancel_event=self.app.cancel_event); self._result_path=o
-                elif fmt == "HTML": o=os.path.join(tmp,"out.html"); conversion.pdf_to_html(inp,o, cancel_event=self.app.cancel_event); self._result_path=o
-                elif fmt == "Markdown": o=os.path.join(tmp,"out.md"); conversion.pdf_to_markdown(inp,o, cancel_event=self.app.cancel_event); self._result_path=o
-                elif fmt == "Plain Text": o=os.path.join(tmp,"out.txt"); conversion.pdf_to_text(inp,o); self._result_path=o
-                elif fmt == "CSV (Tables)": o=os.path.join(tmp,"out.csv"); conversion.pdf_to_csv(inp,o); self._result_path=o
-                elif fmt == "JSON": o=os.path.join(tmp,"out.json"); conversion.pdf_to_json(inp,o); self._result_path=o
-                elif fmt == "XML": o=os.path.join(tmp,"out.xml"); conversion.pdf_to_xml(inp,o); self._result_path=o
-                elif fmt == "PDF/A": o=os.path.join(tmp,"out.pdf"); conversion.pdf_to_pdfa(inp,o); self._result_path=o
+                elif fmt == "Word (DOCX)": o=os.path.join(tmp,"out.docx"); conversion.pdf_to_docx(inp,o,cancel_event=self.app.cancel_event); self._result_path=o
+                elif fmt == "Excel (XLSX)": o=os.path.join(tmp,"out.xlsx"); conversion.pdf_to_xlsx(inp,o,cancel_event=self.app.cancel_event); self._result_path=o
+                elif fmt == "PowerPoint (PPTX)": o=os.path.join(tmp,"out.pptx"); conversion.pdf_to_pptx(inp,o,dpi=dpi,cancel_event=self.app.cancel_event); self._result_path=o
+                elif fmt == "HTML": o=os.path.join(tmp,"out.html"); conversion.pdf_to_html(inp,o,cancel_event=self.app.cancel_event); self._result_path=o
+                elif fmt == "Markdown": o=os.path.join(tmp,"out.md"); conversion.pdf_to_markdown(inp,o,cancel_event=self.app.cancel_event); self._result_path=o
+                elif fmt == "Plain Text": o=os.path.join(tmp,"out.txt"); conversion.pdf_to_text(inp,o,cancel_event=self.app.cancel_event); self._result_path=o
+                elif fmt == "CSV (Tables)": o=os.path.join(tmp,"out.csv"); conversion.pdf_to_csv(inp,o,cancel_event=self.app.cancel_event); self._result_path=o
+                elif fmt == "JSON": o=os.path.join(tmp,"out.json"); conversion.pdf_to_json(inp,o,cancel_event=self.app.cancel_event); self._result_path=o
+                elif fmt == "XML": o=os.path.join(tmp,"out.xml"); conversion.pdf_to_xml(inp,o,cancel_event=self.app.cancel_event); self._result_path=o
+                elif fmt == "PDF/A": o=os.path.join(tmp,"out.pdf"); conversion.pdf_to_pdfa(inp,o,cancel_event=self.app.cancel_event); self._result_path=o
                 
                 if self.app.cancel_event.is_set(): raise Exception("Cancelled by user")
                 
@@ -189,8 +189,8 @@ class ConversionTab(ctk.CTkFrame):
                 from core import conversion
                 tmp = os.path.join(tempfile.mkdtemp(prefix="pdfos_"), "out.pdf")
                 if "Images" in fmt: conversion.images_to_pdf(self.to_pdf_files, tmp, cancel_event=self.app.cancel_event)
-                elif "HTML" in fmt: conversion.html_to_pdf(self.to_pdf_files[0], tmp)
-                elif "Markdown" in fmt: conversion.markdown_to_pdf(self.to_pdf_files[0], tmp)
+                elif "HTML" in fmt: conversion.html_to_pdf(self.to_pdf_files[0], tmp, cancel_event=self.app.cancel_event)
+                elif "Markdown" in fmt: conversion.markdown_to_pdf(self.to_pdf_files[0], tmp, cancel_event=self.app.cancel_event)
                 self._to_result_path = tmp
                 if self.app.cancel_event.is_set(): raise Exception("Cancelled by user")
                 self._log("✓ Done"); self.to_progress.finish(on_complete=lambda: [self.cancel_to_btn.pack_forget(), self.save_to_btn.pack(side="left",padx=5,pady=(0,12))])

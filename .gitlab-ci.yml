@@ -14,8 +14,7 @@ variables:
     - python -m PyInstaller --noconfirm --onedir --windowed --name "PDFOS"
       --exclude-module pandas --exclude-module matplotlib --exclude-module scipy
       --exclude-module notebook --exclude-module IPython
-      --exclude-module PyQt5 --exclude-module PyQt6 --exclude-module PySide6
-      --exclude-module PySide2 --exclude-module sphinx --exclude-module cryptography
+      --exclude-module PySide2 --exclude-module sphinx
       --add-data "core:core" --add-data "ui:ui" --add-data "utils:utils"
       --add-data "assets:assets" --collect-all customtkinter
       --hidden-import psutil --hidden-import PIL._tkinter_finder main.py
@@ -38,7 +37,7 @@ build:windows:
     - pip install -r requirements.txt
     - pip install pyinstaller
     - python -m PyInstaller --noconfirm --onedir --windowed --name "PDFOS"
-      --exclude-module pandas --exclude-module matplotlib --exclude-module scipy --exclude-module notebook --exclude-module IPython --exclude-module PyQt5 --exclude-module PyQt6 --exclude-module PySide6 --exclude-module PySide2 --exclude-module sphinx --exclude-module cryptography
+      --exclude-module pandas --exclude-module matplotlib --exclude-module scipy --exclude-module notebook --exclude-module IPython --exclude-module PyQt5 --exclude-module PyQt6 --exclude-module PySide6 --exclude-module PySide2 --exclude-module sphinx
       --add-data "core;core" --add-data "ui;ui" --add-data "utils;utils"
       --add-data "assets;assets" --collect-all customtkinter
       --hidden-import psutil --hidden-import PIL._tkinter_finder main.py
