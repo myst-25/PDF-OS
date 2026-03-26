@@ -6,7 +6,7 @@ import fitz  # PyMuPDF
 import os
 
 
-def compress_pdf(input_path: str, output_path: str, garbage: int = 4, deflate: bool = True, image_quality: int = 80):
+def compress_pdf(input_path: str, output_path: str, garbage: int = 4, deflate: bool = True, image_quality: int = 80, cancel_event=None):
     """Compress PDF using PyMuPDF garbage collection and deflation."""
     doc = fitz.open(input_path)
     doc.save(
@@ -27,7 +27,7 @@ def compress_pdf(input_path: str, output_path: str, garbage: int = 4, deflate: b
     }
 
 
-def linearize_pdf(input_path: str, output_path: str):
+def linearize_pdf(input_path: str, output_path: str, cancel_event=None):
     """Linearize PDF for fast web viewing."""
     doc = fitz.open(input_path)
     doc.save(output_path, linear=True, garbage=3, deflate=True)
@@ -35,10 +35,11 @@ def linearize_pdf(input_path: str, output_path: str):
     return output_path
 
 
-def downsample_images(input_path: str, output_path: str, max_dpi: int = 150):
+def downsample_images(input_path: str, output_path: str, max_dpi: int = 150, cancel_event=None):
     """Downsample images in PDF to reduce file size."""
     doc = fitz.open(input_path)
     for page in doc:
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         images = page.get_images(full=True)
         for img in images:
             xref = img[0]
@@ -66,7 +67,7 @@ def downsample_images(input_path: str, output_path: str, max_dpi: int = 150):
     return output_path
 
 
-def repair_pdf(input_path: str, output_path: str):
+def repair_pdf(input_path: str, output_path: str, cancel_event=None):
     """Attempt to repair a corrupted PDF."""
     try:
         doc = fitz.open(input_path)
@@ -77,7 +78,7 @@ def repair_pdf(input_path: str, output_path: str):
         return {"success": False, "error": str(e)}
 
 
-def remove_metadata(input_path: str, output_path: str):
+def remove_metadata(input_path: str, output_path: str, cancel_event=None):
     """Strip all metadata from a PDF for privacy."""
     doc = fitz.open(input_path)
     doc.set_metadata({
@@ -95,7 +96,7 @@ def remove_metadata(input_path: str, output_path: str):
     return output_path
 
 
-def convert_to_grayscale(input_path: str, output_path: str, dpi: int = 200):
+def convert_to_grayscale(input_path: str, output_path: str, dpi: int = 200, cancel_event=None):
     """Convert all pages to grayscale by re-rendering."""
     doc = fitz.open(input_path)
     new_doc = fitz.open()
@@ -103,6 +104,7 @@ def convert_to_grayscale(input_path: str, output_path: str, dpi: int = 200):
     mat = fitz.Matrix(zoom, zoom)
 
     for page in doc:
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY)
         # Create new page and insert the grayscale image
         new_page = new_doc.new_page(width=page.rect.width, height=page.rect.height)

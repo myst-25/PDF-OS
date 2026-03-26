@@ -12,6 +12,10 @@ variables:
     - pip install -r requirements.txt
     - pip install pyinstaller
     - python -m PyInstaller --noconfirm --onedir --windowed --name "PDFOS"
+      --exclude-module pandas --exclude-module matplotlib --exclude-module scipy
+      --exclude-module numpy --exclude-module notebook --exclude-module IPython
+      --exclude-module PyQt5 --exclude-module PyQt6 --exclude-module PySide6
+      --exclude-module PySide2 --exclude-module sphinx --exclude-module cryptography
       --add-data "core:core" --add-data "ui:ui" --add-data "utils:utils"
       --add-data "assets:assets" --collect-all customtkinter
       --hidden-import psutil --hidden-import PIL._tkinter_finder main.py
@@ -28,11 +32,13 @@ build:windows:
     PLATFORM: Windows
   before_script:
     - choco install python --version=3.12 -y || true
+    - choco install upx --no-progress -y || true
   script:
     - python -m pip install --upgrade pip
     - pip install -r requirements.txt
     - pip install pyinstaller
     - python -m PyInstaller --noconfirm --onedir --windowed --name "PDFOS"
+      --exclude-module pandas --exclude-module matplotlib --exclude-module scipy --exclude-module numpy --exclude-module notebook --exclude-module IPython --exclude-module PyQt5 --exclude-module PyQt6 --exclude-module PySide6 --exclude-module PySide2 --exclude-module sphinx --exclude-module cryptography
       --add-data "core;core" --add-data "ui;ui" --add-data "utils;utils"
       --add-data "assets;assets" --collect-all customtkinter
       --hidden-import psutil --hidden-import PIL._tkinter_finder main.py
@@ -44,7 +50,7 @@ build:linux:
   variables:
     PLATFORM: Linux
   before_script:
-    - apt-get update && apt-get install -y python3-tk
+    - apt-get update && apt-get install -y python3-tk upx-ucl
 
 build:macos:
   <<: *build_template
@@ -61,12 +67,12 @@ release:
     - job: build:linux
       artifacts: true
   script:
-    - echo "Creating release v1.2"
+    - echo "Creating release v1.23"
   release:
-    tag_name: "v1.2-$CI_PIPELINE_IID"
-    name: "PDFOS v1.2"
+    tag_name: "v1.23-$CI_PIPELINE_IID"
+    name: "PDFOS v1.23"
     description: |
-      ## PDFOS - PDF - OS (Open Source) v1.2
+      ## PDFOS - PDF - OS (Open Source) v1.23
 
       ### Features
       - Conversion: PDF to/from 12+ formats

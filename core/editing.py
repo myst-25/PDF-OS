@@ -8,12 +8,13 @@ import os
 
 def add_text_watermark(input_path: str, output_path: str, text: str = "CONFIDENTIAL",
                        fontsize: int = 60, color: tuple = (0.8, 0.8, 0.8),
-                       rotation: float = -45, opacity: float = 0.3, pages: list = None):
+                       rotation: float = -45, opacity: float = 0.3, pages: list = None, cancel_event=None):
     """Add a text watermark across pages."""
     doc = fitz.open(input_path)
     page_set = set(p - 1 for p in pages) if pages else set(range(len(doc)))
 
     for i in page_set:
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         page = doc[i]
         rect = page.rect
         # Center the watermark text
@@ -34,12 +35,13 @@ def add_text_watermark(input_path: str, output_path: str, text: str = "CONFIDENT
 
 
 def add_image_watermark(input_path: str, output_path: str, image_path: str,
-                        opacity: float = 0.3, scale: float = 0.5, pages: list = None):
+                        opacity: float = 0.3, scale: float = 0.5, pages: list = None, cancel_event=None):
     """Add an image watermark across pages."""
     doc = fitz.open(input_path)
     page_set = set(p - 1 for p in pages) if pages else set(range(len(doc)))
 
     for i in page_set:
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         page = doc[i]
         rect = page.rect
         img_w = rect.width * scale
@@ -55,12 +57,13 @@ def add_image_watermark(input_path: str, output_path: str, image_path: str,
 
 
 def add_header(input_path: str, output_path: str, text: str,
-               fontsize: int = 10, color: tuple = (0, 0, 0), pages: list = None):
+               fontsize: int = 10, color: tuple = (0, 0, 0), pages: list = None, cancel_event=None):
     """Add header text to pages."""
     doc = fitz.open(input_path)
     page_set = set(p - 1 for p in pages) if pages else set(range(len(doc)))
 
     for i in page_set:
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         page = doc[i]
         rect = page.rect
         header_point = fitz.Point(rect.width / 2 - fontsize * len(text) * 0.15, 25)
@@ -73,12 +76,13 @@ def add_header(input_path: str, output_path: str, text: str,
 
 def add_footer(input_path: str, output_path: str, text: str,
                fontsize: int = 10, color: tuple = (0, 0, 0),
-               include_page_numbers: bool = True, pages: list = None):
+               include_page_numbers: bool = True, pages: list = None, cancel_event=None):
     """Add footer text to pages, optionally with page numbers."""
     doc = fitz.open(input_path)
     page_set = set(p - 1 for p in pages) if pages else set(range(len(doc)))
 
     for i in page_set:
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         page = doc[i]
         rect = page.rect
         footer_text = text
@@ -94,11 +98,12 @@ def add_footer(input_path: str, output_path: str, text: str,
 
 
 def add_page_numbers(input_path: str, output_path: str, position: str = "bottom-center",
-                     fontsize: int = 10, start_num: int = 1):
+                     fontsize: int = 10, start_num: int = 1, cancel_event=None):
     """Add page numbers to every page."""
     doc = fitz.open(input_path)
 
     for i, page in enumerate(doc):
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         rect = page.rect
         num_text = str(start_num + i)
 
@@ -121,7 +126,7 @@ def add_page_numbers(input_path: str, output_path: str, position: str = "bottom-
 
 
 def insert_text(input_path: str, output_path: str, page_num: int, x: float, y: float,
-                text: str, fontsize: int = 12, color: tuple = (0, 0, 0)):
+                text: str, fontsize: int = 12, color: tuple = (0, 0, 0), cancel_event=None):
     """Insert text at a specific position on a page (1-indexed)."""
     doc = fitz.open(input_path)
     page = doc[page_num - 1]
@@ -132,13 +137,14 @@ def insert_text(input_path: str, output_path: str, page_num: int, x: float, y: f
 
 
 def redact_text(input_path: str, output_path: str, search_text: str,
-                fill_color: tuple = (0, 0, 0), pages: list = None):
+                fill_color: tuple = (0, 0, 0), pages: list = None, cancel_event=None):
     """Find and redact (black out) all instances of search_text."""
     doc = fitz.open(input_path)
     page_set = set(p - 1 for p in pages) if pages else set(range(len(doc)))
     redact_count = 0
 
     for i in page_set:
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         page = doc[i]
         instances = page.search_for(search_text)
         for rect in instances:
@@ -152,7 +158,7 @@ def redact_text(input_path: str, output_path: str, search_text: str,
 
 
 def insert_image_on_page(input_path: str, output_path: str, image_path: str,
-                         page_num: int, x: float, y: float, width: float, height: float):
+                         page_num: int, x: float, y: float, width: float, height: float, cancel_event=None):
     """Insert an image onto a specific page at given coordinates."""
     doc = fitz.open(input_path)
     page = doc[page_num - 1]

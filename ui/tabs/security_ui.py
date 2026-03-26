@@ -15,7 +15,7 @@ class SecurityTab(ctk.CTkFrame):
     def __init__(self, parent, app):
         super().__init__(parent, fg_color=ios.BG)
         self.app = app
-        self._results = {}; self._progress = {}; self._saves = {}
+        self._results = {}; self._progress = {}; self._saves = {}; self._processes = {}; self._cancels = {}
         self._build_ui()
 
     def _build_ui(self):
@@ -62,7 +62,9 @@ class SecurityTab(ctk.CTkFrame):
 
     def _make_btns(self, card, key):
         bf = ctk.CTkFrame(card, fg_color="transparent"); bf.pack(fill="x", padx=18)
-        ios.ios_process_btn(bf, lambda: getattr(self, f"_do_{key}")()).pack(side="left", padx=5, pady=(0,12))
+        self._processes[key] = ios.ios_process_btn(bf, lambda: getattr(self, f"_do_{key}")())
+        self._processes[key].pack(side="left", padx=5, pady=(0, 12))
+        self._cancels[key] = ios.ios_cancel_btn(bf, lambda: self.app.cancel_event.set())
         self._saves[key] = ios.ios_save_btn(bf, lambda k=key: self._save(k))
         self._progress[key] = ProcessingProgress(card)
 
@@ -76,12 +78,20 @@ class SecurityTab(ctk.CTkFrame):
         self._results[k]=None; self._saves[k].pack_forget(); self._progress[k].reset(); self.app.set_status("Saved")
 
     def _run(self, key, func):
-        self._saves[key].pack_forget(); self._progress[key].start()
+        self._saves[key].pack_forget(); self._processes[key].pack_forget()
+        self._cancels[key].pack(side="left", padx=5, pady=(0, 12))
+        self.app.cancel_event.clear()
+        self._progress[key].start()
         def w():
             try:
-                func(); self._log("✓ Done"); sb=self._saves[key]
-                self._progress[key].finish(on_complete=lambda: sb.pack(side="left",padx=5,pady=(0,12))); gc.collect()
-            except Exception as e: self._log(f"✗ {e}"); self._progress[key].error("Failed")
+                func()
+                if self.app.cancel_event.is_set(): raise Exception("Cancelled by user")
+                self._log("✓ Done"); sb = self._saves[key]
+                self._progress[key].finish(on_complete=lambda: [self._cancels[key].pack_forget(), sb.pack(side="left",padx=5,pady=(0,12))]); gc.collect()
+            except Exception as e:
+                self._log(f"✗ {e}")
+                self._progress[key].error(str(e) if "Cancel" in str(e) else "Failed")
+                self._cancels[key].pack_forget(); self._processes[key].pack(side="left", padx=5, pady=(0, 12))
         threading.Thread(target=w, daemon=True).start()
 
     def _pick(self): return filedialog.askopenfilename(filetypes=[("PDF","*.pdf")])
@@ -94,7 +104,7 @@ class SecurityTab(ctk.CTkFrame):
         opw=self.enc_opw.get() or upw; ap=bool(self.enc_print.get()); ac=bool(self.enc_copy.get())
         def f():
             from core.security import encrypt_pdf
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"enc.pdf"); encrypt_pdf(inp,t,upw,opw,ap,ac); self._results["enc"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"enc.pdf"); encrypt_pdf(inp,t,upw,opw,ap,ac,cancel_event=self.app.cancel_event); self._results["enc"]=t
         self._run("enc", f)
 
     def _do_dec(self):
@@ -104,7 +114,7 @@ class SecurityTab(ctk.CTkFrame):
         if not pw: messagebox.showwarning("PDFOS","Enter password."); return
         def f():
             from core.security import decrypt_pdf
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"dec.pdf"); decrypt_pdf(inp,t,pw); self._results["dec"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"dec.pdf"); decrypt_pdf(inp,t,pw,cancel_event=self.app.cancel_event); self._results["dec"]=t
         self._run("dec", f)
 
     def _do_perm(self):
@@ -115,7 +125,7 @@ class SecurityTab(ctk.CTkFrame):
         def f():
             from core.security import set_permissions
             t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"perm.pdf")
-            set_permissions(inp,t,pw,bool(self.p_pr.get()),bool(self.p_cp.get()),bool(self.p_md.get()),bool(self.p_an.get())); self._results["perm"]=t
+            set_permissions(inp,t,pw,bool(self.p_pr.get()),bool(self.p_cp.get()),bool(self.p_md.get()),bool(self.p_an.get()),cancel_event=self.app.cancel_event); self._results["perm"]=t
         self._run("perm", f)
 
     def _check(self):

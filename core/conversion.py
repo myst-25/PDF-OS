@@ -7,13 +7,14 @@ import os
 from PIL import Image
 
 
-def pdf_to_images(input_path: str, output_dir: str, fmt: str = "png", dpi: int = 200):
+def pdf_to_images(input_path: str, output_dir: str, fmt: str = "png", dpi: int = 200, cancel_event=None):
     """Convert each PDF page to an image file."""
     doc = fitz.open(input_path)
     results = []
     zoom = dpi / 72
     mat = fitz.Matrix(zoom, zoom)
     for i, page in enumerate(doc):
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         pix = page.get_pixmap(matrix=mat)
         out = os.path.join(output_dir, f"page_{i + 1}.{fmt}")
         pix.save(out)
@@ -22,11 +23,12 @@ def pdf_to_images(input_path: str, output_dir: str, fmt: str = "png", dpi: int =
     return results
 
 
-def images_to_pdf(image_paths: list, output_path: str):
+def images_to_pdf(image_paths: list, output_path: str, cancel_event=None):
     """Convert a list of image files to a single PDF."""
     imgs = []
     first = None
     for p in image_paths:
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         img = Image.open(p).convert("RGB")
         if first is None:
             first = img
@@ -37,11 +39,12 @@ def images_to_pdf(image_paths: list, output_path: str):
     return output_path
 
 
-def pdf_to_text(input_path: str, output_path: str = None):
+def pdf_to_text(input_path: str, output_path: str = None, cancel_event=None):
     """Extract all text from a PDF."""
     doc = fitz.open(input_path)
     text = ""
     for page in doc:
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         text += page.get_text() + "\n"
     doc.close()
     if output_path:
@@ -50,7 +53,7 @@ def pdf_to_text(input_path: str, output_path: str = None):
     return text
 
 
-def pdf_to_html(input_path: str, output_path: str):
+def pdf_to_html(input_path: str, output_path: str, cancel_event=None):
     """Convert PDF to HTML using PyMuPDF."""
     doc = fitz.open(input_path)
     html_content = """<!DOCTYPE html>
@@ -58,6 +61,7 @@ def pdf_to_html(input_path: str, output_path: str):
 <style>body{font-family:Arial,sans-serif;margin:40px;}.page{margin-bottom:30px;border-bottom:1px solid #ccc;padding-bottom:20px;}</style>
 </head><body>"""
     for i, page in enumerate(doc):
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         page_html = page.get_text("html")
         html_content += f'<div class="page"><h3>Page {i + 1}</h3>{page_html}</div>'
     html_content += "</body></html>"
@@ -67,11 +71,12 @@ def pdf_to_html(input_path: str, output_path: str):
     return output_path
 
 
-def pdf_to_markdown(input_path: str, output_path: str):
+def pdf_to_markdown(input_path: str, output_path: str, cancel_event=None):
     """Convert PDF to Markdown (text-based extraction)."""
     doc = fitz.open(input_path)
     md = ""
     for i, page in enumerate(doc):
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         md += f"# Page {i + 1}\n\n"
         blocks = page.get_text("dict")["blocks"]
         for block in blocks:
@@ -96,7 +101,7 @@ def pdf_to_markdown(input_path: str, output_path: str):
     return output_path
 
 
-def pdf_to_csv(input_path: str, output_path: str):
+def pdf_to_csv(input_path: str, output_path: str, cancel_event=None):
     """Extract tables from PDF to CSV using pdfplumber."""
     import pdfplumber
     import csv
@@ -115,7 +120,7 @@ def pdf_to_csv(input_path: str, output_path: str):
     return output_path
 
 
-def pdf_to_json(input_path: str, output_path: str):
+def pdf_to_json(input_path: str, output_path: str, cancel_event=None):
     """Extract structured text and metadata from PDF to JSON."""
     import json
 
@@ -126,6 +131,7 @@ def pdf_to_json(input_path: str, output_path: str):
         "pages": []
     }
     for i, page in enumerate(doc):
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         page_data = {
             "page_number": i + 1,
             "width": page.rect.width,
@@ -139,7 +145,7 @@ def pdf_to_json(input_path: str, output_path: str):
     return output_path
 
 
-def pdf_to_xml(input_path: str, output_path: str):
+def pdf_to_xml(input_path: str, output_path: str, cancel_event=None):
     """Convert PDF to XML structured output."""
     doc = fitz.open(input_path)
     xml = '<?xml version="1.0" encoding="UTF-8"?>\n<document>\n'
@@ -148,6 +154,7 @@ def pdf_to_xml(input_path: str, output_path: str):
         xml += f'    <{key}>{val if val else ""}</{key}>\n'
     xml += f'  </metadata>\n'
     for i, page in enumerate(doc):
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         xml += f'  <page number="{i + 1}">\n'
         xml += f'    <text>{page.get_text().replace("<", "&lt;").replace(">", "&gt;")}</text>\n'
         xml += f'  </page>\n'
@@ -158,7 +165,7 @@ def pdf_to_xml(input_path: str, output_path: str):
     return output_path
 
 
-def pdf_to_docx(input_path: str, output_path: str):
+def pdf_to_docx(input_path: str, output_path: str, cancel_event=None):
     """Convert PDF to Word DOCX."""
     from pdf2docx import Converter
     cv = Converter(input_path)
@@ -167,7 +174,7 @@ def pdf_to_docx(input_path: str, output_path: str):
     return output_path
 
 
-def pdf_to_xlsx(input_path: str, output_path: str):
+def pdf_to_xlsx(input_path: str, output_path: str, cancel_event=None):
     """Extract tables from PDF to Excel XLSX."""
     import pdfplumber
     from openpyxl import Workbook
@@ -178,6 +185,7 @@ def pdf_to_xlsx(input_path: str, output_path: str):
     row_idx = 1
     with pdfplumber.open(input_path) as pdf:
         for page_num, page in enumerate(pdf.pages):
+            if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
             tables = page.extract_tables()
             for table in tables:
                 for row in table:
@@ -189,7 +197,7 @@ def pdf_to_xlsx(input_path: str, output_path: str):
     return output_path
 
 
-def pdf_to_pptx(input_path: str, output_path: str, dpi: int = 150):
+def pdf_to_pptx(input_path: str, output_path: str, dpi: int = 150, cancel_event=None):
     """Convert PDF pages to PowerPoint slides (as images)."""
     from pptx import Presentation
     from pptx.util import Inches
@@ -204,6 +212,7 @@ def pdf_to_pptx(input_path: str, output_path: str, dpi: int = 150):
     mat = fitz.Matrix(zoom, zoom)
 
     for page in doc:
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         pix = page.get_pixmap(matrix=mat)
         tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
         pix.save(tmp.name)
@@ -218,7 +227,7 @@ def pdf_to_pptx(input_path: str, output_path: str, dpi: int = 150):
     return output_path
 
 
-def pdf_to_pdfa(input_path: str, output_path: str):
+def pdf_to_pdfa(input_path: str, output_path: str, cancel_event=None):
     """Convert PDF to PDF/A (archival) using PyMuPDF."""
     doc = fitz.open(input_path)
     # Set PDF/A metadata
@@ -231,7 +240,7 @@ def pdf_to_pdfa(input_path: str, output_path: str):
     return output_path
 
 
-def markdown_to_pdf(input_path: str, output_path: str):
+def markdown_to_pdf(input_path: str, output_path: str, cancel_event=None):
     """Convert Markdown to PDF via HTML rendering."""
     import markdown
 
@@ -254,6 +263,7 @@ table{{border-collapse:collapse;width:100%;}}th,td{{border:1px solid #ddd;paddin
         where = mediabox + fitz.Rect(36, 36, -36, -36)
         more = True
         while more:
+            if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
             dev = writer.begin_page(mediabox)
             more, _ = story.place(where)
             story.draw(dev)
@@ -270,7 +280,7 @@ table{{border-collapse:collapse;width:100%;}}th,td{{border:1px solid #ddd;paddin
     return output_path
 
 
-def html_to_pdf(input_path: str, output_path: str):
+def html_to_pdf(input_path: str, output_path: str, cancel_event=None):
     """Convert HTML file to PDF."""
     with open(input_path, "r", encoding="utf-8") as f:
         html_content = f.read()
@@ -282,6 +292,7 @@ def html_to_pdf(input_path: str, output_path: str):
         where = mediabox + fitz.Rect(36, 36, -36, -36)
         more = True
         while more:
+            if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
             dev = writer.begin_page(mediabox)
             more, _ = story.place(where)
             story.draw(dev)

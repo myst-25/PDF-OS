@@ -27,6 +27,10 @@ class ConversionTab(ctk.CTkFrame):
         self._result_path = None
         self._result_paths = []
         self._to_result_path = None
+        self.process_from_btn = None
+        self.cancel_from_btn = None
+        self.process_to_btn = None
+        self.cancel_to_btn = None
         self._build_ui()
 
     def _build_ui(self):
@@ -61,7 +65,9 @@ class ConversionTab(ctk.CTkFrame):
 
         # Buttons
         bf = ctk.CTkFrame(card, fg_color="transparent"); bf.pack(fill="x", padx=18)
-        ios.ios_process_btn(bf, self._process_from).pack(side="left", padx=5, pady=(0, 12))
+        self.process_from_btn = ios.ios_process_btn(bf, self._process_from)
+        self.process_from_btn.pack(side="left", padx=5, pady=(0, 12))
+        self.cancel_from_btn = ios.ios_cancel_btn(bf, lambda: self.app.cancel_event.set())
         self.save_from_btn = ios.ios_save_btn(bf, self._save_from)
 
         self.from_progress = ProcessingProgress(card)
@@ -81,7 +87,9 @@ class ConversionTab(ctk.CTkFrame):
         ios.ios_option_menu(tf, self.FORMATS_TO, self.to_fmt_var, width=200).pack(side="left", padx=12)
 
         bf2 = ctk.CTkFrame(card2, fg_color="transparent"); bf2.pack(fill="x", padx=18)
-        ios.ios_process_btn(bf2, self._process_to).pack(side="left", padx=5, pady=(0, 12))
+        self.process_to_btn = ios.ios_process_btn(bf2, self._process_to)
+        self.process_to_btn.pack(side="left", padx=5, pady=(0, 12))
+        self.cancel_to_btn = ios.ios_cancel_btn(bf2, lambda: self.app.cancel_event.set())
         self.save_to_btn = ios.ios_save_btn(bf2, self._save_to)
 
         self.to_progress = ProcessingProgress(card2)
@@ -115,7 +123,10 @@ class ConversionTab(ctk.CTkFrame):
         fmt = self.fmt_var.get(); dpi = self.dpi_var.get()
         self.app.set_status(f"Processing → {fmt}…")
         self._log(f"Converting {os.path.basename(self.selected_file)} → {fmt}")
-        self.save_from_btn.pack_forget(); self.from_progress.start()
+        self.save_from_btn.pack_forget(); self.process_from_btn.pack_forget()
+        self.cancel_from_btn.pack(side="left", padx=5, pady=(0, 12))
+        self.app.cancel_event.clear()
+        self.from_progress.start()
 
         def work():
             try:
@@ -123,24 +134,28 @@ class ConversionTab(ctk.CTkFrame):
                 inp = self.selected_file; tmp = tempfile.mkdtemp(prefix="pdfos_")
                 if "Images" in fmt:
                     ext = "png" if "PNG" in fmt else "jpg"
-                    self._result_paths = conversion.pdf_to_images(inp, tmp, fmt=ext, dpi=dpi); self._result_path = tmp
+                    self._result_paths = conversion.pdf_to_images(inp, tmp, fmt=ext, dpi=dpi, cancel_event=self.app.cancel_event); self._result_path = tmp
                 elif fmt == "Word (DOCX)": o=os.path.join(tmp,"out.docx"); conversion.pdf_to_docx(inp,o); self._result_path=o
                 elif fmt == "Excel (XLSX)": o=os.path.join(tmp,"out.xlsx"); conversion.pdf_to_xlsx(inp,o); self._result_path=o
-                elif fmt == "PowerPoint (PPTX)": o=os.path.join(tmp,"out.pptx"); conversion.pdf_to_pptx(inp,o,dpi=dpi); self._result_path=o
-                elif fmt == "HTML": o=os.path.join(tmp,"out.html"); conversion.pdf_to_html(inp,o); self._result_path=o
-                elif fmt == "Markdown": o=os.path.join(tmp,"out.md"); conversion.pdf_to_markdown(inp,o); self._result_path=o
+                elif fmt == "PowerPoint (PPTX)": o=os.path.join(tmp,"out.pptx"); conversion.pdf_to_pptx(inp,o,dpi=dpi, cancel_event=self.app.cancel_event); self._result_path=o
+                elif fmt == "HTML": o=os.path.join(tmp,"out.html"); conversion.pdf_to_html(inp,o, cancel_event=self.app.cancel_event); self._result_path=o
+                elif fmt == "Markdown": o=os.path.join(tmp,"out.md"); conversion.pdf_to_markdown(inp,o, cancel_event=self.app.cancel_event); self._result_path=o
                 elif fmt == "Plain Text": o=os.path.join(tmp,"out.txt"); conversion.pdf_to_text(inp,o); self._result_path=o
                 elif fmt == "CSV (Tables)": o=os.path.join(tmp,"out.csv"); conversion.pdf_to_csv(inp,o); self._result_path=o
                 elif fmt == "JSON": o=os.path.join(tmp,"out.json"); conversion.pdf_to_json(inp,o); self._result_path=o
                 elif fmt == "XML": o=os.path.join(tmp,"out.xml"); conversion.pdf_to_xml(inp,o); self._result_path=o
                 elif fmt == "PDF/A": o=os.path.join(tmp,"out.pdf"); conversion.pdf_to_pdfa(inp,o); self._result_path=o
+                
+                if self.app.cancel_event.is_set(): raise Exception("Cancelled by user")
+                
                 log_operation("conversion", f"to_{fmt}", inp, success=True)
                 self._log("✓ Done"); self.app.set_status("Ready to save")
-                self.from_progress.finish(on_complete=lambda: self.save_from_btn.pack(side="left", padx=5, pady=(0,12)))
+                self.from_progress.finish(on_complete=lambda: [self.cancel_from_btn.pack_forget(), self.save_from_btn.pack(side="left", padx=5, pady=(0,12))])
                 gc.collect()
             except Exception as e:
                 log_operation("conversion", f"to_{fmt}", inp, error=str(e), success=False)
-                self._log(f"✗ {e}"); self.from_progress.error("Failed")
+                self._log(f"✗ {e}"); self.from_progress.error(str(e) if "Cancel" in str(e) else "Failed")
+                self.cancel_from_btn.pack_forget(); self.process_from_btn.pack(side="left", padx=5, pady=(0, 12))
         threading.Thread(target=work, daemon=True).start()
 
     def _save_from(self):
@@ -165,18 +180,25 @@ class ConversionTab(ctk.CTkFrame):
     def _process_to(self):
         if not self.to_pdf_files: messagebox.showwarning("PDFOS", "Select files first."); return
         fmt = self.to_fmt_var.get()
-        self.save_to_btn.pack_forget(); self.to_progress.start()
+        self.save_to_btn.pack_forget(); self.process_to_btn.pack_forget()
+        self.cancel_to_btn.pack(side="left", padx=5, pady=(0, 12))
+        self.app.cancel_event.clear()
+        self.to_progress.start()
         def work():
             try:
                 from core import conversion
                 tmp = os.path.join(tempfile.mkdtemp(prefix="pdfos_"), "out.pdf")
-                if "Images" in fmt: conversion.images_to_pdf(self.to_pdf_files, tmp)
+                if "Images" in fmt: conversion.images_to_pdf(self.to_pdf_files, tmp, cancel_event=self.app.cancel_event)
                 elif "HTML" in fmt: conversion.html_to_pdf(self.to_pdf_files[0], tmp)
                 elif "Markdown" in fmt: conversion.markdown_to_pdf(self.to_pdf_files[0], tmp)
                 self._to_result_path = tmp
-                self._log("✓ Done"); self.to_progress.finish(on_complete=lambda: self.save_to_btn.pack(side="left",padx=5,pady=(0,12)))
+                if self.app.cancel_event.is_set(): raise Exception("Cancelled by user")
+                self._log("✓ Done"); self.to_progress.finish(on_complete=lambda: [self.cancel_to_btn.pack_forget(), self.save_to_btn.pack(side="left",padx=5,pady=(0,12))])
                 gc.collect()
-            except Exception as e: self._log(f"✗ {e}"); self.to_progress.error("Failed")
+            except Exception as e:
+                self._log(f"✗ {e}")
+                self.to_progress.error(str(e) if "Cancel" in str(e) else "Failed")
+                self.cancel_to_btn.pack_forget(); self.process_to_btn.pack(side="left", padx=5, pady=(0, 12))
         threading.Thread(target=work, daemon=True).start()
 
     def _save_to(self):

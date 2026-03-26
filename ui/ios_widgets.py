@@ -77,6 +77,14 @@ def ios_save_btn(parent, command):
     return btn
 
 
+def ios_cancel_btn(parent, command):
+    """iOS red Cancel button — initially hidden."""
+    btn = ios_button(parent, "Cancel", command, RED, width=110)
+    btn.pack(side="left", padx=5, pady=(0, 12))
+    btn.pack_forget()
+    return btn
+
+
 def ios_select_btn(parent, text, command):
     """iOS-style file select button (tinted outline)."""
     return ctk.CTkButton(

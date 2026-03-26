@@ -15,7 +15,7 @@ class OptimizationTab(ctk.CTkFrame):
     def __init__(self, parent, app):
         super().__init__(parent, fg_color=ios.BG)
         self.app = app
-        self._results = {}; self._progress = {}; self._saves = {}
+        self._results = {}; self._progress = {}; self._saves = {}; self._processes = {}; self._cancels = {}
         self._build_ui()
 
     def _build_ui(self):
@@ -60,7 +60,9 @@ class OptimizationTab(ctk.CTkFrame):
 
     def _make_btns(self, card, key):
         bf = ctk.CTkFrame(card, fg_color="transparent"); bf.pack(fill="x", padx=18)
-        ios.ios_process_btn(bf, lambda: getattr(self, f"_do_{key}")()).pack(side="left", padx=5, pady=(0,12))
+        self._processes[key] = ios.ios_process_btn(bf, lambda: getattr(self, f"_do_{key}")())
+        self._processes[key].pack(side="left", padx=5, pady=(0, 12))
+        self._cancels[key] = ios.ios_cancel_btn(bf, lambda: self.app.cancel_event.set())
         self._saves[key] = ios.ios_save_btn(bf, lambda k=key: self._save(k))
         self._progress[key] = ProcessingProgress(card)
 
@@ -74,12 +76,20 @@ class OptimizationTab(ctk.CTkFrame):
         self._results[k]=None; self._saves[k].pack_forget(); self._progress[k].reset(); self.app.set_status("Saved")
 
     def _run(self, key, func):
-        self._saves[key].pack_forget(); self._progress[key].start()
+        self._saves[key].pack_forget(); self._processes[key].pack_forget()
+        self._cancels[key].pack(side="left", padx=5, pady=(0, 12))
+        self.app.cancel_event.clear()
+        self._progress[key].start()
         def w():
             try:
-                func(); self._log("✓ Done"); sb=self._saves[key]
-                self._progress[key].finish(on_complete=lambda: sb.pack(side="left",padx=5,pady=(0,12))); gc.collect()
-            except Exception as e: self._log(f"✗ {e}"); self._progress[key].error("Failed")
+                func()
+                if self.app.cancel_event.is_set(): raise Exception("Cancelled by user")
+                self._log("✓ Done"); sb = self._saves[key]
+                self._progress[key].finish(on_complete=lambda: [self._cancels[key].pack_forget(), sb.pack(side="left",padx=5,pady=(0,12))]); gc.collect()
+            except Exception as e:
+                self._log(f"✗ {e}")
+                self._progress[key].error(str(e) if "Cancel" in str(e) else "Failed")
+                self._cancels[key].pack_forget(); self._processes[key].pack(side="left", padx=5, pady=(0, 12))
         threading.Thread(target=w, daemon=True).start()
 
     def _pick(self): return filedialog.askopenfilename(filetypes=[("PDF","*.pdf")])
@@ -90,7 +100,7 @@ class OptimizationTab(ctk.CTkFrame):
         q=self.q_var.get()
         def f():
             from core.optimization import compress_pdf
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"comp.pdf"); r=compress_pdf(inp,t,image_quality=q); self._results["compress"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"comp.pdf"); r=compress_pdf(inp,t,image_quality=q,cancel_event=self.app.cancel_event); self._results["compress"]=t
             self._log(f"  {r['original_size']//1024}KB → {r['compressed_size']//1024}KB ({r['reduction_pct']}%)")
         self._run("compress", f)
 
@@ -99,7 +109,7 @@ class OptimizationTab(ctk.CTkFrame):
         if not inp: return
         def f():
             from core.optimization import linearize_pdf
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"lin.pdf"); linearize_pdf(inp,t); self._results["linearize"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"lin.pdf"); linearize_pdf(inp,t,cancel_event=self.app.cancel_event); self._results["linearize"]=t
         self._run("linearize", f)
 
     def _do_downsample(self):
@@ -108,7 +118,7 @@ class OptimizationTab(ctk.CTkFrame):
         dpi=int(self.ds_dpi.get() or 150)
         def f():
             from core.optimization import downsample_images
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"ds.pdf"); downsample_images(inp,t,dpi); self._results["downsample"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"ds.pdf"); downsample_images(inp,t,dpi,cancel_event=self.app.cancel_event); self._results["downsample"]=t
         self._run("downsample", f)
 
     def _do_repair(self):
@@ -116,7 +126,7 @@ class OptimizationTab(ctk.CTkFrame):
         if not inp: return
         def f():
             from core.optimization import repair_pdf
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"rep.pdf"); r=repair_pdf(inp,t); self._results["repair"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"rep.pdf"); r=repair_pdf(inp,t,cancel_event=self.app.cancel_event); self._results["repair"]=t
             if r["success"]: self._log(f"  Repaired: {r['pages']} pages")
         self._run("repair", f)
 
@@ -125,7 +135,7 @@ class OptimizationTab(ctk.CTkFrame):
         if not inp: return
         def f():
             from core.optimization import remove_metadata
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"nm.pdf"); remove_metadata(inp,t); self._results["meta"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"nm.pdf"); remove_metadata(inp,t,cancel_event=self.app.cancel_event); self._results["meta"]=t
         self._run("meta", f)
 
     def _do_gray(self):
@@ -133,5 +143,5 @@ class OptimizationTab(ctk.CTkFrame):
         if not inp: return
         def f():
             from core.optimization import convert_to_grayscale
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"gray.pdf"); convert_to_grayscale(inp,t); self._results["gray"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"gray.pdf"); convert_to_grayscale(inp,t,cancel_event=self.app.cancel_event); self._results["gray"]=t
         self._run("gray", f)

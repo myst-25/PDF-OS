@@ -15,7 +15,7 @@ class EditingTab(ctk.CTkFrame):
     def __init__(self, parent, app):
         super().__init__(parent, fg_color=ios.BG)
         self.app = app
-        self._results = {}; self._progress = {}; self._saves = {}
+        self._results = {}; self._progress = {}; self._saves = {}; self._processes = {}; self._cancels = {}
         self._build_ui()
 
     def _build_ui(self):
@@ -70,7 +70,9 @@ class EditingTab(ctk.CTkFrame):
 
     def _make_btns(self, card, key):
         bf = ctk.CTkFrame(card, fg_color="transparent"); bf.pack(fill="x", padx=18)
-        ios.ios_process_btn(bf, lambda: getattr(self, f"_do_{key}")()).pack(side="left", padx=5, pady=(0,12))
+        self._processes[key] = ios.ios_process_btn(bf, lambda: getattr(self, f"_do_{key}")())
+        self._processes[key].pack(side="left", padx=5, pady=(0,12))
+        self._cancels[key] = ios.ios_cancel_btn(bf, lambda: self.app.cancel_event.set())
         self._saves[key] = ios.ios_save_btn(bf, lambda k=key: self._save(k))
         self._progress[key] = ProcessingProgress(card)
 
@@ -84,12 +86,20 @@ class EditingTab(ctk.CTkFrame):
         self._results[k]=None; self._saves[k].pack_forget(); self._progress[k].reset(); self.app.set_status("Saved")
 
     def _run(self, key, func):
-        self._saves[key].pack_forget(); self._progress[key].start()
+        self._saves[key].pack_forget(); self._processes[key].pack_forget()
+        self._cancels[key].pack(side="left", padx=5, pady=(0, 12))
+        self.app.cancel_event.clear()
+        self._progress[key].start()
         def w():
             try:
-                func(); self._log("✓ Done"); sb=self._saves[key]
-                self._progress[key].finish(on_complete=lambda: sb.pack(side="left",padx=5,pady=(0,12))); gc.collect()
-            except Exception as e: self._log(f"✗ {e}"); self._progress[key].error("Failed")
+                func()
+                if self.app.cancel_event.is_set(): raise Exception("Cancelled by user")
+                self._log("✓ Done"); sb = self._saves[key]
+                self._progress[key].finish(on_complete=lambda: [self._cancels[key].pack_forget(), sb.pack(side="left",padx=5,pady=(0,12))]); gc.collect()
+            except Exception as e:
+                self._log(f"✗ {e}")
+                self._progress[key].error(str(e) if "Cancel" in str(e) else "Failed")
+                self._cancels[key].pack_forget(); self._processes[key].pack(side="left", padx=5, pady=(0, 12))
         threading.Thread(target=w, daemon=True).start()
 
     def _pick(self): return filedialog.askopenfilename(filetypes=[("PDF","*.pdf")])
@@ -100,7 +110,7 @@ class EditingTab(ctk.CTkFrame):
         txt=self.wm_text.get() or "CONFIDENTIAL"; sz=int(self.wm_size.get() or 60)
         def f():
             from core.editing import add_text_watermark
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"wm.pdf"); add_text_watermark(inp,t,text=txt,fontsize=sz); self._results["wm"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"wm.pdf"); add_text_watermark(inp,t,text=txt,fontsize=sz,cancel_event=self.app.cancel_event); self._results["wm"]=t
         self._run("wm", f)
 
     def _do_imgwm(self):
@@ -110,7 +120,7 @@ class EditingTab(ctk.CTkFrame):
         if not img: return
         def f():
             from core.editing import add_image_watermark
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"imgwm.pdf"); add_image_watermark(inp,t,img); self._results["imgwm"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"imgwm.pdf"); add_image_watermark(inp,t,img,cancel_event=self.app.cancel_event); self._results["imgwm"]=t
         self._run("imgwm", f)
 
     def _do_hdr(self):
@@ -119,7 +129,7 @@ class EditingTab(ctk.CTkFrame):
         txt=self.hdr_text.get() or "Header"
         def f():
             from core.editing import add_header
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"hdr.pdf"); add_header(inp,t,txt); self._results["hdr"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"hdr.pdf"); add_header(inp,t,txt,cancel_event=self.app.cancel_event); self._results["hdr"]=t
         self._run("hdr", f)
 
     def _do_ftr(self):
@@ -128,7 +138,7 @@ class EditingTab(ctk.CTkFrame):
         txt=self.ftr_text.get() or "Footer"; nums=bool(self.ftr_nums.get())
         def f():
             from core.editing import add_footer
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"ftr.pdf"); add_footer(inp,t,txt,include_page_numbers=nums); self._results["ftr"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"ftr.pdf"); add_footer(inp,t,txt,include_page_numbers=nums,cancel_event=self.app.cancel_event); self._results["ftr"]=t
         self._run("ftr", f)
 
     def _do_pn(self):
@@ -137,7 +147,7 @@ class EditingTab(ctk.CTkFrame):
         pos=self.pn_pos.get()
         def f():
             from core.editing import add_page_numbers
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"pn.pdf"); add_page_numbers(inp,t,position=pos); self._results["pn"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"pn.pdf"); add_page_numbers(inp,t,position=pos,cancel_event=self.app.cancel_event); self._results["pn"]=t
         self._run("pn", f)
 
     def _do_red(self):
@@ -147,6 +157,6 @@ class EditingTab(ctk.CTkFrame):
         if not txt: messagebox.showwarning("PDFOS","Enter text to redact."); return
         def f():
             from core.editing import redact_text
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"red.pdf"); r=redact_text(inp,t,txt); self._results["red"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"red.pdf"); r=redact_text(inp,t,txt,cancel_event=self.app.cancel_event); self._results["red"]=t
             self._log(f"  {r['redactions']} instances found")
         self._run("red", f)

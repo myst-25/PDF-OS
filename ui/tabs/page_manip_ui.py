@@ -18,6 +18,8 @@ class PageManipTab(ctk.CTkFrame):
         self._results = {}
         self._progress = {}
         self._saves = {}
+        self._processes = {}
+        self._cancels = {}
         self._build_ui()
 
     def _build_ui(self):
@@ -40,9 +42,10 @@ class PageManipTab(ctk.CTkFrame):
 
     def _make_btns(self, card, key):
         bf = ctk.CTkFrame(card, fg_color="transparent"); bf.pack(fill="x", padx=18)
-        ios.ios_process_btn(bf, lambda: getattr(self, f"_do_{key}")()).pack(side="left", padx=5, pady=(0, 12))
-        sb = ios.ios_save_btn(bf, lambda: self._save(key))
-        self._saves[key] = sb
+        self._processes[key] = ios.ios_process_btn(bf, lambda: getattr(self, f"_do_{key}")())
+        self._processes[key].pack(side="left", padx=5, pady=(0, 12))
+        self._cancels[key] = ios.ios_cancel_btn(bf, lambda: self.app.cancel_event.set())
+        self._saves[key] = ios.ios_save_btn(bf, lambda k=key: self._save(k))
         self._progress[key] = ProcessingProgress(card)
 
     def _save(self, k):
@@ -59,12 +62,20 @@ class PageManipTab(ctk.CTkFrame):
         self._results[k]=None; self._saves[k].pack_forget(); self._progress[k].reset(); self.app.set_status("Saved")
 
     def _run(self, key, func):
-        self._saves[key].pack_forget(); self._progress[key].start()
+        self._saves[key].pack_forget(); self._processes[key].pack_forget()
+        self._cancels[key].pack(side="left", padx=5, pady=(0, 12))
+        self.app.cancel_event.clear()
+        self._progress[key].start()
         def w():
             try:
-                func(); self._log("✓ Done"); sb=self._saves[key]
-                self._progress[key].finish(on_complete=lambda: sb.pack(side="left",padx=5,pady=(0,12))); gc.collect()
-            except Exception as e: self._log(f"✗ {e}"); self._progress[key].error("Failed")
+                func()
+                if self.app.cancel_event.is_set(): raise Exception("Cancelled by user")
+                self._log("✓ Done"); sb = self._saves[key]
+                self._progress[key].finish(on_complete=lambda: [self._cancels[key].pack_forget(), sb.pack(side="left",padx=5,pady=(0,12))]); gc.collect()
+            except Exception as e:
+                self._log(f"✗ {e}")
+                self._progress[key].error(str(e) if "Cancel" in str(e) else "Failed")
+                self._cancels[key].pack_forget(); self._processes[key].pack(side="left", padx=5, pady=(0, 12))
         threading.Thread(target=w, daemon=True).start()
 
     # ── MERGE ──
@@ -84,7 +95,7 @@ class PageManipTab(ctk.CTkFrame):
         if len(self._merge_files)<2: messagebox.showinfo("PDFOS","Select 2+ PDFs."); return
         def f():
             from core.page_manipulation import merge_pdfs
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"merged.pdf"); merge_pdfs(self._merge_files,t); self._results["merge"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"merged.pdf"); merge_pdfs(self._merge_files,t,cancel_event=self.app.cancel_event); self._results["merge"]=t
         self._run("merge", f)
 
     # ── SPLIT ──
@@ -104,7 +115,7 @@ class PageManipTab(ctk.CTkFrame):
             except: messagebox.showerror("PDFOS","Invalid range."); return
         def f():
             from core.page_manipulation import split_pdf
-            t=tempfile.mkdtemp(prefix="pdfos_"); r=split_pdf(inp,t,ranges); self._results["split"]=r
+            t=tempfile.mkdtemp(prefix="pdfos_"); r=split_pdf(inp,t,ranges,cancel_event=self.app.cancel_event); self._results["split"]=r
         self._run("split", f)
 
     # ── ROTATE ──
@@ -125,7 +136,7 @@ class PageManipTab(ctk.CTkFrame):
         pages=[int(p.strip()) for p in pt.split(",")] if pt else None
         def f():
             from core.page_manipulation import rotate_pages
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"rotated.pdf"); rotate_pages(inp,t,pages or [],angle); self._results["rotate"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"rotated.pdf"); rotate_pages(inp,t,pages or [],angle,cancel_event=self.app.cancel_event); self._results["rotate"]=t
         self._run("rotate", f)
 
     # ── DELETE ──
@@ -144,7 +155,7 @@ class PageManipTab(ctk.CTkFrame):
         pages=[int(p.strip()) for p in pt.split(",")]
         def f():
             from core.page_manipulation import delete_pages
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"del.pdf"); delete_pages(inp,t,pages); self._results["delete"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"del.pdf"); delete_pages(inp,t,pages,cancel_event=self.app.cancel_event); self._results["delete"]=t
         self._run("delete", f)
 
     # ── EXTRACT ──
@@ -163,7 +174,7 @@ class PageManipTab(ctk.CTkFrame):
         pages=[int(p.strip()) for p in pt.split(",")]
         def f():
             from core.page_manipulation import extract_pages
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"ext.pdf"); extract_pages(inp,t,pages); self._results["extract"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"ext.pdf"); extract_pages(inp,t,pages,cancel_event=self.app.cancel_event); self._results["extract"]=t
         self._run("extract", f)
 
     # ── REVERSE ──
@@ -176,7 +187,7 @@ class PageManipTab(ctk.CTkFrame):
         if not inp: return
         def f():
             from core.page_manipulation import reverse_pages
-            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"rev.pdf"); reverse_pages(inp,t); self._results["reverse"]=t
+            t=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"rev.pdf"); reverse_pages(inp,t,cancel_event=self.app.cancel_event); self._results["reverse"]=t
         self._run("reverse", f)
 
     # ── CROP ──
@@ -196,5 +207,5 @@ class PageManipTab(ctk.CTkFrame):
         except ValueError: messagebox.showerror("PDFOS","Numbers only."); return
         def f():
             from core.page_manipulation import crop_pages
-            tp=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"crop.pdf"); crop_pages(inp,tp,l,t,r,b); self._results["crop"]=tp
+            tp=os.path.join(tempfile.mkdtemp(prefix="pdfos_"),"crop.pdf"); crop_pages(inp,tp,l,t,r,b,pages=None,cancel_event=self.app.cancel_event); self._results["crop"]=tp
         self._run("crop", f)

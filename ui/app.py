@@ -8,6 +8,7 @@ import sys
 import webbrowser
 import os
 import gc
+import threading
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -123,6 +124,7 @@ class PDFOSApp(ctk.CTk):
         # Resource monitor
         self.resource_monitor = ResourceMonitor(callback=self._on_resource_update, interval=2.0)
         self.resource_monitor.start()
+        self.cancel_event = threading.Event()
 
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -350,7 +352,7 @@ class PDFOSApp(ctk.CTk):
         self.status_label.pack(side="left", padx=12, fill="x")
 
         self.version_label = ctk.CTkLabel(
-            self.status_bar, text="v1.2  ",
+            self.status_bar, text="v1.23  ",
             font=ctk.CTkFont(family=self.FONT_FAMILY, size=9),
             text_color=self.IOS["label_quaternary"]
         )

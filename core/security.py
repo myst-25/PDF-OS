@@ -6,11 +6,12 @@ from pypdf import PdfReader, PdfWriter
 
 
 def encrypt_pdf(input_path: str, output_path: str, user_password: str, owner_password: str = None,
-                allow_printing: bool = True, allow_copying: bool = False):
+                allow_printing: bool = True, allow_copying: bool = False, cancel_event=None):
     """Encrypt a PDF with user and owner passwords."""
     reader = PdfReader(input_path)
     writer = PdfWriter()
     for page in reader.pages:
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         writer.add_page(page)
 
     # Copy metadata
@@ -33,13 +34,14 @@ def encrypt_pdf(input_path: str, output_path: str, user_password: str, owner_pas
     return output_path
 
 
-def decrypt_pdf(input_path: str, output_path: str, password: str):
+def decrypt_pdf(input_path: str, output_path: str, password: str, cancel_event=None):
     """Remove password protection from a PDF."""
     reader = PdfReader(input_path)
     if reader.is_encrypted:
         reader.decrypt(password)
     writer = PdfWriter()
     for page in reader.pages:
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         writer.add_page(page)
     if reader.metadata:
         writer.add_metadata(reader.metadata)
@@ -56,13 +58,14 @@ def is_encrypted(input_path: str) -> bool:
 
 def set_permissions(input_path: str, output_path: str, owner_password: str,
                     allow_print: bool = True, allow_copy: bool = True,
-                    allow_modify: bool = False, allow_annotate: bool = True):
+                    allow_modify: bool = False, allow_annotate: bool = True, cancel_event=None):
     """Set specific permissions on a PDF."""
     reader = PdfReader(input_path)
     if reader.is_encrypted:
         reader.decrypt(owner_password)
     writer = PdfWriter()
     for page in reader.pages:
+        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
         writer.add_page(page)
 
     perms = 0

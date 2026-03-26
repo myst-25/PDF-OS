@@ -17,6 +17,7 @@ class ExtractionTab(ctk.CTkFrame):
         self.app = app
         self.loaded_file = None
         self._last_result = ""
+        self.tool_btns = []
         self._build_ui()
 
     def _build_ui(self):
@@ -44,13 +45,15 @@ class ExtractionTab(ctk.CTkFrame):
         for i, (label, cmd, color) in enumerate(tool_btns):
             if i % 4 == 0:
                 row = ctk.CTkFrame(tf, fg_color="transparent"); row.pack(fill="x", pady=3)
-            ctk.CTkButton(
+            btn = ctk.CTkButton(
                 row, text=label, height=36, width=140, corner_radius=8,
                 fg_color=ios.FILL, hover_color=color,
                 text_color=ios.LABEL,
                 font=ctk.CTkFont(family=ios.FONT, size=12, weight="bold"),
                 command=cmd
-            ).pack(side="left", padx=4, pady=2)
+            )
+            btn.pack(side="left", padx=4, pady=2)
+            self.tool_btns.append(btn)
 
         # Search
         ios.ios_section_label(c, "SEARCH")
@@ -59,9 +62,10 @@ class ExtractionTab(ctk.CTkFrame):
         self.search_entry = ios.ios_entry(sf, 280, "Search query…"); self.search_entry.pack(side="left")
         ios.ios_button(sf, "Search", self._search, width=90, height=32).pack(side="left", padx=10)
 
-        # Progress
+        # Progress / Cancel
         self.progress = ProcessingProgress(c)
-
+        self.cancel_btn = ios.ios_cancel_btn(c, lambda: self.app.cancel_event.set())
+        
         # Results
         res_row = ctk.CTkFrame(c, fg_color="transparent"); res_row.pack(fill="x", pady=(6,3))
         ios.ios_label(res_row, "Results", size=13, weight="bold").pack(side="left")
@@ -97,19 +101,29 @@ class ExtractionTab(ctk.CTkFrame):
             self.app.set_status(f"Exported")
 
     def _run(self, name, func):
-        self.export_btn.pack_forget(); self.progress.start()
+        self.export_btn.pack_forget()
+        self.cancel_btn.pack(pady=5)
+        for b in self.tool_btns: b.configure(state="disabled")
+        self.app.cancel_event.clear()
+        self.progress.start()
         def w():
             try:
                 func()
-                self.progress.finish(on_complete=lambda: self.export_btn.pack(side="right"))
+                if self.app.cancel_event.is_set(): raise Exception("Cancelled by user")
+                self.progress.finish(on_complete=lambda: [self.cancel_btn.pack_forget(), self.export_btn.pack(side="right")])
                 gc.collect()
-            except Exception as e: self._show(f"Error: {e}"); self.progress.error("Failed")
+            except Exception as e: 
+                self._show(f"Error: {e}")
+                self.progress.error(str(e) if "Cancel" in str(e) else "Failed")
+                self.cancel_btn.pack_forget()
+            finally:
+                for b in self.tool_btns: b.configure(state="normal")
         threading.Thread(target=w, daemon=True).start()
 
     def _ext_text(self):
         if not self._ok(): return
         def f():
-            from core.extraction import extract_text; t=extract_text(self.loaded_file)
+            from core.extraction import extract_text; t=extract_text(self.loaded_file,cancel_event=self.app.cancel_event)
             self._show(t if t.strip() else "(No text found)"); self.app.set_status("Text extracted")
         self._run("text", f)
 
@@ -118,14 +132,14 @@ class ExtractionTab(ctk.CTkFrame):
         od=filedialog.askdirectory(title="Output folder")
         if not od: return
         def f():
-            from core.extraction import extract_images; r=extract_images(self.loaded_file,od)
+            from core.extraction import extract_images; r=extract_images(self.loaded_file,od,cancel_event=self.app.cancel_event)
             self._show(f"Extracted {len(r)} images:\n"+"\n".join(r)); self.app.set_status(f"{len(r)} images")
         self._run("images", f)
 
     def _ext_tables(self):
         if not self._ok(): return
         def f():
-            from core.extraction import extract_tables; tables=extract_tables(self.loaded_file)
+            from core.extraction import extract_tables; tables=extract_tables(self.loaded_file,cancel_event=self.app.cancel_event)
             if not tables: self._show("No tables found."); return
             t=""
             for tb in tables:
@@ -144,14 +158,14 @@ class ExtractionTab(ctk.CTkFrame):
     def _ext_fonts(self):
         if not self._ok(): return
         def f():
-            from core.extraction import extract_fonts; fs=extract_fonts(self.loaded_file)
+            from core.extraction import extract_fonts; fs=extract_fonts(self.loaded_file,cancel_event=self.app.cancel_event)
             self._show("Fonts:\n"+"\n".join(f"  • {x['name']} ({x['encoding']})" for x in fs) if fs else "No fonts.")
         self._run("fonts", f)
 
     def _ext_links(self):
         if not self._ok(): return
         def f():
-            from core.extraction import extract_hyperlinks; ls=extract_hyperlinks(self.loaded_file)
+            from core.extraction import extract_hyperlinks; ls=extract_hyperlinks(self.loaded_file,cancel_event=self.app.cancel_event)
             self._show(f"{len(ls)} links:\n"+"\n".join(f"  p{l['page']}: {l['uri']}" for l in ls) if ls else "No links.")
         self._run("links", f)
 
@@ -176,6 +190,6 @@ class ExtractionTab(ctk.CTkFrame):
         q=self.search_entry.get().strip()
         if not q: return
         def f():
-            from core.extraction import full_text_search; r=full_text_search(self.loaded_file,q)
+            from core.extraction import full_text_search; r=full_text_search(self.loaded_file,q,cancel_event=self.app.cancel_event)
             self._show(f"{len(r)} matches for '{q}':\n"+"\n".join(f"  Page {x['page']}" for x in r) if r else f"No matches for '{q}'.")
         self._run("search", f)
