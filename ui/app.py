@@ -13,7 +13,7 @@ import threading
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.logger import get_logger
-from utils.resource_monitor import ResourceMonitor, cleanup_memory, apply_resource_limits
+from utils.resource_monitor import ResourceMonitor, cleanup_memory
 
 logger = get_logger("app")
 
@@ -122,7 +122,6 @@ class PDFOSApp(ctk.CTk):
         self._switch_tab("conversion")
 
         # Resource monitor
-        apply_resource_limits()
         self.resource_monitor = ResourceMonitor(callback=self._on_resource_update, interval=2.0)
         self.resource_monitor.start()
         self.cancel_event = threading.Event()

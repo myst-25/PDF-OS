@@ -11,7 +11,9 @@ def encrypt_pdf(input_path: str, output_path: str, user_password: str, owner_pas
     reader = PdfReader(input_path)
     writer = PdfWriter()
     for page in reader.pages:
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         writer.add_page(page)
 
     # Copy metadata
@@ -41,7 +43,9 @@ def decrypt_pdf(input_path: str, output_path: str, password: str, cancel_event=N
         reader.decrypt(password)
     writer = PdfWriter()
     for page in reader.pages:
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         writer.add_page(page)
     if reader.metadata:
         writer.add_metadata(reader.metadata)
@@ -65,7 +69,9 @@ def set_permissions(input_path: str, output_path: str, owner_password: str,
         reader.decrypt(owner_password)
     writer = PdfWriter()
     for page in reader.pages:
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         writer.add_page(page)
 
     perms = 0

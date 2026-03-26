@@ -11,7 +11,9 @@ def merge_pdfs(pdf_paths: list, output_path: str, cancel_event=None):
     """Merge multiple PDF files into one."""
     writer = PdfWriter()
     for path in pdf_paths:
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         reader = PdfReader(path)
         for page in reader.pages:
             writer.add_page(page)
@@ -29,7 +31,9 @@ def split_pdf(input_path: str, output_dir: str, ranges: list = None, cancel_even
     if ranges is None:
         # Split into individual pages
         for i in range(total):
-            if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+            if cancel_event:
+                if cancel_event.is_set(): raise Exception("Cancelled by user")
+                import time; time.sleep(0.005)
             writer = PdfWriter()
             writer.add_page(reader.pages[i])
             out = os.path.join(output_dir, f"page_{i + 1}.pdf")
@@ -38,7 +42,9 @@ def split_pdf(input_path: str, output_dir: str, ranges: list = None, cancel_even
             results.append(out)
     else:
         for idx, (start, end) in enumerate(ranges):
-            if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+            if cancel_event:
+                if cancel_event.is_set(): raise Exception("Cancelled by user")
+                import time; time.sleep(0.005)
             writer = PdfWriter()
             for i in range(max(0, start - 1), min(end, total)):
                 writer.add_page(reader.pages[i])

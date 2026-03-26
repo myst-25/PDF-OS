@@ -14,7 +14,9 @@ def pdf_to_images(input_path: str, output_dir: str, fmt: str = "png", dpi: int =
     zoom = dpi / 72
     mat = fitz.Matrix(zoom, zoom)
     for i, page in enumerate(doc):
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         pix = page.get_pixmap(matrix=mat)
         out = os.path.join(output_dir, f"page_{i + 1}.{fmt}")
         pix.save(out)
@@ -28,7 +30,9 @@ def images_to_pdf(image_paths: list, output_path: str, cancel_event=None):
     imgs = []
     first = None
     for p in image_paths:
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         img = Image.open(p).convert("RGB")
         if first is None:
             first = img
@@ -44,7 +48,9 @@ def pdf_to_text(input_path: str, output_path: str = None, cancel_event=None):
     doc = fitz.open(input_path)
     text = ""
     for page in doc:
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         text += page.get_text() + "\n"
     doc.close()
     if output_path:
@@ -61,7 +67,9 @@ def pdf_to_html(input_path: str, output_path: str, cancel_event=None):
 <style>body{font-family:Arial,sans-serif;margin:40px;}.page{margin-bottom:30px;border-bottom:1px solid #ccc;padding-bottom:20px;}</style>
 </head><body>"""
     for i, page in enumerate(doc):
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         page_html = page.get_text("html")
         html_content += f'<div class="page"><h3>Page {i + 1}</h3>{page_html}</div>'
     html_content += "</body></html>"
@@ -76,7 +84,9 @@ def pdf_to_markdown(input_path: str, output_path: str, cancel_event=None):
     doc = fitz.open(input_path)
     md = ""
     for i, page in enumerate(doc):
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         md += f"# Page {i + 1}\n\n"
         blocks = page.get_text("dict")["blocks"]
         for block in blocks:
@@ -131,7 +141,9 @@ def pdf_to_json(input_path: str, output_path: str, cancel_event=None):
         "pages": []
     }
     for i, page in enumerate(doc):
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         page_data = {
             "page_number": i + 1,
             "width": page.rect.width,
@@ -154,7 +166,9 @@ def pdf_to_xml(input_path: str, output_path: str, cancel_event=None):
         xml += f'    <{key}>{val if val else ""}</{key}>\n'
     xml += f'  </metadata>\n'
     for i, page in enumerate(doc):
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         xml += f'  <page number="{i + 1}">\n'
         xml += f'    <text>{page.get_text().replace("<", "&lt;").replace(">", "&gt;")}</text>\n'
         xml += f'  </page>\n'
@@ -185,7 +199,9 @@ def pdf_to_xlsx(input_path: str, output_path: str, cancel_event=None):
     row_idx = 1
     with pdfplumber.open(input_path) as pdf:
         for page_num, page in enumerate(pdf.pages):
-            if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+            if cancel_event:
+                if cancel_event.is_set(): raise Exception("Cancelled by user")
+                import time; time.sleep(0.005)
             tables = page.extract_tables()
             for table in tables:
                 for row in table:
@@ -212,7 +228,9 @@ def pdf_to_pptx(input_path: str, output_path: str, dpi: int = 150, cancel_event=
     mat = fitz.Matrix(zoom, zoom)
 
     for page in doc:
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         pix = page.get_pixmap(matrix=mat)
         tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
         pix.save(tmp.name)
@@ -263,7 +281,9 @@ table{{border-collapse:collapse;width:100%;}}th,td{{border:1px solid #ddd;paddin
         where = mediabox + fitz.Rect(36, 36, -36, -36)
         more = True
         while more:
-            if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+            if cancel_event:
+                if cancel_event.is_set(): raise Exception("Cancelled by user")
+                import time; time.sleep(0.005)
             dev = writer.begin_page(mediabox)
             more, _ = story.place(where)
             story.draw(dev)
@@ -292,7 +312,9 @@ def html_to_pdf(input_path: str, output_path: str, cancel_event=None):
         where = mediabox + fitz.Rect(36, 36, -36, -36)
         more = True
         while more:
-            if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+            if cancel_event:
+                if cancel_event.is_set(): raise Exception("Cancelled by user")
+                import time; time.sleep(0.005)
             dev = writer.begin_page(mediabox)
             more, _ = story.place(where)
             story.draw(dev)

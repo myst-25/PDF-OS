@@ -60,12 +60,7 @@ class ResourceMonitor:
                 if self._gc_counter % 15 == 0:
                     log_resource_usage(cpu, ram_mb, ram_percent)
 
-                # Apply 75% System RAM Limit
-                if ram_percent > 75.0:
-                    collected = gc.collect()
-                    if collected > 0:
-                        log_memory_cleanup(collected)
-                        logger.warning(f"High memory ({ram_percent:.1f}% / 75.0%), forced GC: {collected} objects freed")
+
 
                 # Callback to update UI
                 if self.callback:
@@ -102,19 +97,3 @@ def cleanup_memory():
     return collected
 
 
-def apply_resource_limits():
-    """Detect CPU and RAM, restrict CPU affinity and calculate 75% limits."""
-    try:
-        p = psutil.Process()
-        cores = psutil.cpu_count(logical=True)
-        if cores and cores > 1:
-            target_cores = max(1, int(cores * 0.75))
-            if hasattr(p, "cpu_affinity"):
-                p.cpu_affinity(list(range(target_cores)))
-                logger.info(f"Resource Limit: CPU Affinity restricted to {target_cores}/{cores} cores (75%).")
-        
-        sys_ram = psutil.virtual_memory().total / (1024**3)
-        target_ram = sys_ram * 0.75
-        logger.info(f"Resource Limit: RAM cap set at ~{target_ram:.1f}GB (75% of {sys_ram:.1f}GB).")
-    except Exception as e:
-        logger.warning(f"Could not apply resource limits: {e}")

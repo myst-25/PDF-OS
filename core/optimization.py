@@ -39,7 +39,9 @@ def downsample_images(input_path: str, output_path: str, max_dpi: int = 150, can
     """Downsample images in PDF to reduce file size."""
     doc = fitz.open(input_path)
     for page in doc:
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         images = page.get_images(full=True)
         for img in images:
             xref = img[0]
@@ -104,7 +106,9 @@ def convert_to_grayscale(input_path: str, output_path: str, dpi: int = 200, canc
     mat = fitz.Matrix(zoom, zoom)
 
     for page in doc:
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         pix = page.get_pixmap(matrix=mat, colorspace=fitz.csGRAY)
         # Create new page and insert the grayscale image
         new_page = new_doc.new_page(width=page.rect.width, height=page.rect.height)

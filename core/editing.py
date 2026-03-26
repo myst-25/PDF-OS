@@ -14,7 +14,9 @@ def add_text_watermark(input_path: str, output_path: str, text: str = "CONFIDENT
     page_set = set(p - 1 for p in pages) if pages else set(range(len(doc)))
 
     for i in page_set:
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         page = doc[i]
         rect = page.rect
         # Center the watermark text
@@ -41,7 +43,9 @@ def add_image_watermark(input_path: str, output_path: str, image_path: str,
     page_set = set(p - 1 for p in pages) if pages else set(range(len(doc)))
 
     for i in page_set:
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         page = doc[i]
         rect = page.rect
         img_w = rect.width * scale
@@ -63,7 +67,9 @@ def add_header(input_path: str, output_path: str, text: str,
     page_set = set(p - 1 for p in pages) if pages else set(range(len(doc)))
 
     for i in page_set:
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         page = doc[i]
         rect = page.rect
         header_point = fitz.Point(rect.width / 2 - fontsize * len(text) * 0.15, 25)
@@ -82,7 +88,9 @@ def add_footer(input_path: str, output_path: str, text: str,
     page_set = set(p - 1 for p in pages) if pages else set(range(len(doc)))
 
     for i in page_set:
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         page = doc[i]
         rect = page.rect
         footer_text = text
@@ -103,7 +111,9 @@ def add_page_numbers(input_path: str, output_path: str, position: str = "bottom-
     doc = fitz.open(input_path)
 
     for i, page in enumerate(doc):
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         rect = page.rect
         num_text = str(start_num + i)
 
@@ -144,7 +154,9 @@ def redact_text(input_path: str, output_path: str, search_text: str,
     redact_count = 0
 
     for i in page_set:
-        if cancel_event and cancel_event.is_set(): raise Exception("Cancelled by user")
+        if cancel_event:
+            if cancel_event.is_set(): raise Exception("Cancelled by user")
+            import time; time.sleep(0.005)
         page = doc[i]
         instances = page.search_for(search_text)
         for rect in instances:
