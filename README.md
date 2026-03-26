@@ -81,8 +81,14 @@ Go to [Releases](https://github.com/myst-25/PDF-OS/releases) and download for yo
 | Windows | `PDFOS-Windows.tar.gz` |
 | Linux | `PDFOS-Linux.tar.gz` |
 | macOS | `PDFOS-macOS.tar.gz` |
-
 Extract and run `PDFOS` (or `PDFOS.exe` on Windows).
+
+### 🛠️ Experiencing Crashes or Bugs? (Debug Build)
+If you encounter crashes, unresponsiveness, or unexpected errors, please download the **Diagnostic Debug Build** from our Developer Releases branch. 
+
+The Debug Build contains advanced C++ style Python logging, hardware telemetry profiling, and automatically transmits error logs and memory dumps heavily compressed via ZIP directly to the developer's Telegram bot in real-time to help fix the issue instantly.
+
+- 👉 [Download Developer/Debug Build Here](https://github.com/myst-25/PDF-OS/releases/tag/debug-build-latest)
 
 ### Build from Source
 
