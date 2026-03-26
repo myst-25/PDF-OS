@@ -1,0 +1,81 @@
+stages:
+  - build
+  - release
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+
+.build_template: &build_template
+  stage: build
+  script:
+    - python -m pip install --upgrade pip
+    - pip install -r requirements.txt
+    - pip install pyinstaller
+    - python -m PyInstaller --noconfirm --onedir --windowed --name "PDFOS"
+      --add-data "core:core" --add-data "ui:ui" --add-data "utils:utils"
+      --add-data "assets:assets" --collect-all customtkinter
+      --hidden-import psutil --hidden-import PIL._tkinter_finder main.py
+    - cd dist && tar -czf ../PDFOS-${PLATFORM}.tar.gz PDFOS/
+  artifacts:
+    paths:
+      - PDFOS-${PLATFORM}.tar.gz
+    expire_in: 1 week
+
+build:windows:
+  <<: *build_template
+  tags: [windows]
+  variables:
+    PLATFORM: Windows
+  before_script:
+    - choco install python --version=3.12 -y || true
+  script:
+    - python -m pip install --upgrade pip
+    - pip install -r requirements.txt
+    - pip install pyinstaller
+    - python -m PyInstaller --noconfirm --onedir --windowed --name "PDFOS"
+      --add-data "core;core" --add-data "ui;ui" --add-data "utils;utils"
+      --add-data "assets;assets" --collect-all customtkinter
+      --hidden-import psutil --hidden-import PIL._tkinter_finder main.py
+    - cd dist && tar -czf ../PDFOS-Windows.tar.gz PDFOS/
+
+build:linux:
+  <<: *build_template
+  image: python:3.12
+  variables:
+    PLATFORM: Linux
+  before_script:
+    - apt-get update && apt-get install -y python3-tk
+
+build:macos:
+  <<: *build_template
+  tags: [macos]
+  variables:
+    PLATFORM: macOS
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - job: build:linux
+      artifacts: true
+  script:
+    - echo "Creating release v1.2"
+  release:
+    tag_name: "v1.2-$CI_PIPELINE_IID"
+    name: "PDFOS v1.2"
+    description: |
+      ## PDFOS - PDF - OS (Open Source) v1.2
+
+      ### Features
+      - Conversion: PDF to/from 12+ formats
+      - Pages: Merge, Split, Rotate, Delete, Extract, Reverse, Crop
+      - Editing: Watermarks, Headers, Footers, Page Numbers, Redaction
+      - Extraction: Text, Images, Tables, Metadata, Fonts, Links, Search
+      - Security: Encrypt, Decrypt, Permissions
+      - Optimize: Compress, Linearize, Downsample, Repair, Grayscale
+    assets:
+      links:
+        - name: "PDFOS-Linux"
+          url: "${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/PDFOS-Linux.tar.gz"

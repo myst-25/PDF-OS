@@ -1,0 +1,26 @@
+# Build artifacts
+dist/
+build/
+*.spec
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Pip cache
+.pip-cache/
+
+# Logs (legacy)
+*.log

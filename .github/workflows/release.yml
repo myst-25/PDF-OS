@@ -1,0 +1,104 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: PDFOS-Windows
+            ext: .exe
+          - os: ubuntu-latest
+            artifact: PDFOS-Linux
+            ext: ""
+          - os: macos-latest
+            artifact: PDFOS-macOS
+            ext: ""
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build executable
+        run: |
+          python -m PyInstaller --noconfirm --onedir --windowed --name "PDFOS" --add-data "core${{ runner.os == 'Windows' && ';' || ':' }}core" --add-data "ui${{ runner.os == 'Windows' && ';' || ':' }}ui" --add-data "utils${{ runner.os == 'Windows' && ';' || ':' }}utils" --add-data "assets${{ runner.os == 'Windows' && ';' || ':' }}assets" --collect-all customtkinter --hidden-import psutil --hidden-import PIL._tkinter_finder main.py
+
+      - name: Package artifact
+        run: |
+          cd dist
+          tar -czf ../${{ matrix.artifact }}.tar.gz PDFOS/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2' }}
+          name: "PDFOS ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.2' }}"
+          body: |
+            ## PDFOS - PDF - OS (Open Source) v1.2
+
+            ### Features
+            - 🔄 **Conversion**: PDF ↔ Images, Word, Excel, PowerPoint, HTML, Markdown, Text, CSV, JSON, XML, PDF/A
+            - 📄 **Pages**: Merge, Split, Rotate, Delete, Extract, Reverse, Crop
+            - ✏️ **Editing**: Text/Image Watermarks, Headers, Footers, Page Numbers, Redaction
+            - 🔍 **Extraction**: Text, Images, Tables, Metadata, Fonts, Links, Bookmarks, Attachments, Full-text Search
+            - 🔒 **Security**: Encrypt, Decrypt, Set Permissions
+            - ⚡ **Optimize**: Compress, Linearize, Downsample, Repair, Remove Metadata, Grayscale
+
+            ### UI
+            - iOS-inspired design with Segoe UI / SF Pro fonts
+            - Real-time CPU/RAM monitoring
+            - Animated progress bars
+            - Process → Save workflow
+            - Dark & Light mode
+
+            ### Downloads
+            | Platform | File |
+            |----------|------|
+            | Windows | `PDFOS-Windows.tar.gz` |
+            | Linux | `PDFOS-Linux.tar.gz` |
+            | macOS | `PDFOS-macOS.tar.gz` |
+          files: |
+            PDFOS-Windows/PDFOS-Windows.tar.gz
+            PDFOS-Linux/PDFOS-Linux.tar.gz
+            PDFOS-macOS/PDFOS-macOS.tar.gz
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
