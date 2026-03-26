@@ -44,6 +44,7 @@ jobs:
           python -m PyInstaller --noconfirm --onedir --windowed --name "PDFOS" --add-data "core${{ runner.os == 'Windows' && ';' || ':' }}core" --add-data "ui${{ runner.os == 'Windows' && ';' || ':' }}ui" --add-data "utils${{ runner.os == 'Windows' && ';' || ':' }}utils" --add-data "assets${{ runner.os == 'Windows' && ';' || ':' }}assets" --collect-all customtkinter --hidden-import psutil --hidden-import PIL._tkinter_finder main.py
 
       - name: Package artifact
+        shell: bash
         run: |
           cd dist
           tar -czf ../${{ matrix.artifact }}.tar.gz PDFOS/
