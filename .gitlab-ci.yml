@@ -18,10 +18,10 @@ variables:
       --add-data "core:core" --add-data "ui:ui" --add-data "utils:utils"
       --add-data "assets:assets" --collect-all customtkinter
       --hidden-import psutil --hidden-import PIL._tkinter_finder main.py
-    - cd dist && tar -czf ../PDFOS-${PLATFORM}.tar.gz PDFOS/
+    - cd dist && tar -czf ../PDFOS-${PLATFORM}-Debug.tar.gz PDFOS/
   artifacts:
     paths:
-      - PDFOS-${PLATFORM}.tar.gz
+      - PDFOS-${PLATFORM}-Debug.tar.gz
     expire_in: 1 week
 
 build:windows:
@@ -41,7 +41,7 @@ build:windows:
       --add-data "core;core" --add-data "ui;ui" --add-data "utils;utils"
       --add-data "assets;assets" --collect-all customtkinter
       --hidden-import psutil --hidden-import PIL._tkinter_finder main.py
-    - cd dist && tar -czf ../PDFOS-Windows.tar.gz PDFOS/
+    - cd dist && tar -czf ../PDFOS-Windows-Debug.tar.gz PDFOS/
 
 build:linux:
   <<: *build_template
@@ -61,7 +61,7 @@ release:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "dev"
   needs:
     - job: build:linux
       artifacts: true
@@ -70,26 +70,19 @@ release:
     - job: build:macos
       artifacts: true
   script:
-    - echo "Creating release v1.24.0"
+    - echo "Creating Debug Release"
   release:
-    tag_name: "v1.24.0-$CI_PIPELINE_IID"
-    name: "PDFOS v1.24.0"
+    tag_name: "debug-build-latest"
+    name: "PDFOS Developer/Debug Build"
     description: |
-      ## PDFOS - PDF - OS (Open Source) v1.24.0
-
-      ### Features
-      - Conversion: PDF to/from 12+ formats
-      - Pages: Merge, Split, Rotate, Delete, Extract, Reverse, Crop
-      - Editing: Watermarks, Headers, Footers, Page Numbers, Redaction
-      - Extraction: Text, Images, Tables, Metadata, Fonts, Links, Search
-      - Security: Encrypt, Decrypt, Permissions
-      - Optimize: Compress, Linearize, Downsample, Repair, Grayscale
-      - System: 75% Auto CPU/RAM limits
+      ## PDFOS - Diagnostic Debug Build
+      This special release contains advanced real-time telemetry, memory-dump logging, and automated Telegram bot networks.
+      **⚠️ Only use this version if requested by developers to diagnose system crashes!**
     assets:
       links:
-        - name: "PDFOS-Linux"
-          url: "${CI_PROJECT_URL}/-/jobs/artifacts/main/raw/PDFOS-Linux.tar.gz?job=build:linux"
-        - name: "PDFOS-Windows"
-          url: "${CI_PROJECT_URL}/-/jobs/artifacts/main/raw/PDFOS-Windows.tar.gz?job=build:windows"
-        - name: "PDFOS-macOS"
-          url: "${CI_PROJECT_URL}/-/jobs/artifacts/main/raw/PDFOS-macOS.tar.gz?job=build:macos"
+        - name: "PDFOS-Linux-Debug"
+          url: "${CI_PROJECT_URL}/-/jobs/artifacts/dev/raw/PDFOS-Linux-Debug.tar.gz?job=build:linux"
+        - name: "PDFOS-Windows-Debug"
+          url: "${CI_PROJECT_URL}/-/jobs/artifacts/dev/raw/PDFOS-Windows-Debug.tar.gz?job=build:windows"
+        - name: "PDFOS-macOS-Debug"
+          url: "${CI_PROJECT_URL}/-/jobs/artifacts/dev/raw/PDFOS-macOS-Debug.tar.gz?job=build:macos"
