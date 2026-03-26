@@ -65,13 +65,17 @@ release:
   needs:
     - job: build:linux
       artifacts: true
+    - job: build:windows
+      artifacts: true
+    - job: build:macos
+      artifacts: true
   script:
-    - echo "Creating release v1.23"
+    - echo "Creating release v1.24.0"
   release:
-    tag_name: "v1.23-$CI_PIPELINE_IID"
-    name: "PDFOS v1.23"
+    tag_name: "v1.24.0-$CI_PIPELINE_IID"
+    name: "PDFOS v1.24.0"
     description: |
-      ## PDFOS - PDF - OS (Open Source) v1.23
+      ## PDFOS - PDF - OS (Open Source) v1.24.0
 
       ### Features
       - Conversion: PDF to/from 12+ formats
@@ -80,7 +84,12 @@ release:
       - Extraction: Text, Images, Tables, Metadata, Fonts, Links, Search
       - Security: Encrypt, Decrypt, Permissions
       - Optimize: Compress, Linearize, Downsample, Repair, Grayscale
+      - System: 75% Auto CPU/RAM limits
     assets:
       links:
         - name: "PDFOS-Linux"
-          url: "${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/PDFOS-Linux.tar.gz"
+          url: "${CI_PROJECT_URL}/-/jobs/artifacts/main/raw/PDFOS-Linux.tar.gz?job=build:linux"
+        - name: "PDFOS-Windows"
+          url: "${CI_PROJECT_URL}/-/jobs/artifacts/main/raw/PDFOS-Windows.tar.gz?job=build:windows"
+        - name: "PDFOS-macOS"
+          url: "${CI_PROJECT_URL}/-/jobs/artifacts/main/raw/PDFOS-macOS.tar.gz?job=build:macos"

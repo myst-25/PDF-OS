@@ -77,10 +77,10 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.23' }}
-          name: "PDFOS ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.23' }}"
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.24.0' }}
+          name: "PDFOS ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.24.0' }}"
           body: |
-            ## PDFOS - PDF - OS (Open Source) v1.23
+            ## PDFOS - PDF - OS (Open Source) v1.24.0
 
             ### Features
             - 🔄 **Conversion**: PDF ↔ Images, Word, Excel, PowerPoint, HTML, Markdown, Text, CSV, JSON, XML, PDF/A

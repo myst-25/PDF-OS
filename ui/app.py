@@ -353,7 +353,7 @@ class PDFOSApp(ctk.CTk):
         self.status_label.pack(side="left", padx=12, fill="x")
 
         self.version_label = ctk.CTkLabel(
-            self.status_bar, text="v1.23  ",
+            self.status_bar, text="v1.24.0  ",
             font=ctk.CTkFont(family=self.FONT_FAMILY, size=9),
             text_color=self.IOS["label_quaternary"]
         )
